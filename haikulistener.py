@@ -3,6 +3,7 @@ import config
 import re
 import sys
 import time
+import thread
 
 wordlist = "wordlist.txt"
 syllablelist = "syllablelist.txt"
@@ -88,17 +89,6 @@ def guessSyllables(word):
     return count
 
 
-#authorize tweepy
-auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
-auth.set_access_token(config.access_token, config.access_token_secret)
-api = tweepy.API(auth)
-
-#set up stream
-haikuListener = HaikuListener()
-haikuStream = tweepy.Stream(auth=api.auth, listener=haikuListener)
-haikuStream.userstream(async=True)
-
-
 def limit_handled(cursor):
     # handles twitter limiting and tries to find people
     # who follow
@@ -108,9 +98,25 @@ def limit_handled(cursor):
         except tweepy.RateLimitError:
             time.sleep(15*60)
 
-#teamfollowback!
-for follower in limit_handled(tweepy.Cursor(api.followers).items()):
-    # maybe keep out the spammers
-    if follower.friends_count/follower.followers_count < 3 or follower.friends_count < 100:
-        follower.follow()
-        print("following " + follower.screen_name)
+
+def follow_back():
+    #teamfollowback!
+    while True:
+        for follower in limit_handled(tweepy.Cursor(api.followers).items()):
+            # maybe keep out the spammers
+            if follower.friends_count/follower.followers_count < 3 or follower.friends_count < 100:
+                follower.follow()
+                print("following " + follower.screen_name)
+        time.sleep(15*60)
+
+#authorize tweepy
+auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
+auth.set_access_token(config.access_token, config.access_token_secret)
+api = tweepy.API(auth)
+
+#set up stream
+haikuListener = HaikuListener()
+haikuStream = tweepy.Stream(auth=api.auth, listener=haikuListener)
+haikuStream.userstream(async=True)
+thread.start_new_thread(follow_back, ())
+api.update_status("@ChrisW_B I'm ready!")
