@@ -42,7 +42,7 @@ def countSyllables(tweet):
             totalSyllables[0] += wordSyllables
         elif totalSyllables[1] < 7:
             totalSyllables[1] += wordSyllables
-        elif totalSyllables[2] < 5:
+        else:
             totalSyllables[2] += wordSyllables
     return totalSyllables
 
