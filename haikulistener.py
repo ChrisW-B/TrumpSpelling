@@ -11,34 +11,47 @@ reload(sys)
 sys.setdefaultencoding('utf8')  #twitter doesn't get along with ascii
 
 
-class HaikuListener(tweepy.StreamListener):
+class HaikuSampleListener(tweepy.StreamListener):
     # override tweepy.StreamListener to add logic to on_status
     def on_status(self, status):
-        numSyllables = countSyllables(status.text)
+        numSyllables = count_syllables(status.text)
         if numSyllables == [5, 7, 5]:
-            print("Found haiku!")
+            print("Found non follow haiku!")
             api.create_favorite(status.id)
-            api.update_status("@"+ status.author.screen_name + " Nice haiku!", in_reply_to_status_id=status.id)
-   
+
     def on_error(self, status_code):
         print(status_code)
 
 
-def countSyllables(tweet):
+class HaikuUserListener(tweepy.StreamListener):
+    def on_status(self, status):
+        numSyllables = count_syllables(status.text)
+        if numSyllables == [5, 7, 5]:
+            print("Found follower haiku!")
+            api.create_favorite(status.id)
+            api.update_status("@" + status.author.screen_name + " Nice haiku!", in_reply_to_status_id=status.id)
+
+    def on_error(self, status_code):
+        print(status_code)
+
+
+def count_syllables(tweet):
     # creates an array of syllables out of a tweet
     # to be checked for haikus
     stripUrl = re.sub(r"http\S+", "", tweet)
     stripMentions = re.sub(r"@\S+", "", stripUrl)
-    stripRTs = stripMentions.replace("RT", "")
+    stripTags = re.sub(r"#\S+", "", stripMentions)
+    stripRTs = stripTags.replace("RT", "")
     tweetArray = re.findall(r"[\w']+", stripRTs)
+
     totalSyllables = [0, 0, 0]
     for word in tweetArray:
-        ind = findWord(word + '\n')
+        ind = find_word(word + '\n')
         wordSyllables = 0
         if ind > -1:
-            wordSyllables = getSyllables(ind)
+            wordSyllables = get_syllables(ind)
         else:
-            wordSyllables = guessSyllables(word)
+            wordSyllables = guess_syllables(word)
         if totalSyllables[0] < 5:
             totalSyllables[0] += wordSyllables
         elif totalSyllables[1] < 7:
@@ -48,7 +61,7 @@ def countSyllables(tweet):
     return totalSyllables
 
 
-def findWord(word):
+def find_word(word):
     # searches for word in dictionary file
     word = word.lower()
     with open(wordlist) as myFile:
@@ -59,7 +72,7 @@ def findWord(word):
     return -1
 
 
-def getSyllables(ind):
+def get_syllables(ind):
     # goes to an index of the syllable file and splits up word to
     # count syllables
     with open(syllablelist) as myFile:
@@ -69,7 +82,7 @@ def getSyllables(ind):
                 return len(syllables)
 
 
-def guessSyllables(word):
+def guess_syllables(word):
     # borrowed from:
     #  http://stackoverflow.com/questions/14541303/count-the-number-of-syllables-in-a-word
     count = 0
@@ -102,6 +115,7 @@ def limit_handled(cursor):
 def follow_back():
     #teamfollowback!
     while True:
+        print("starting follow")
         for follower in limit_handled(tweepy.Cursor(api.followers).items()):
             # maybe keep out the spammers
             if follower.friends_count/follower.followers_count < 3 or follower.friends_count < 100:
@@ -109,14 +123,46 @@ def follow_back():
                 print("following " + follower.screen_name)
         time.sleep(15*60)
 
+
+def user_listener():
+    while True:
+        try:
+            # For accounts bot is following
+            print("starting user")
+            haikuUserListener = HaikuUserListener()
+            haikuUserStream = tweepy.Stream(auth=api.auth, listener=haikuUserListener)
+            haikuUserStream.userstream(async=False)
+        except:
+            continue
+
+
+def sample_listener():
+    while True:
+        try:
+            # for sample stream
+            print("starting sample")
+            haikuSampleListener = HaikuSampleListener()
+            haikuSampleStream = tweepy.Stream(auth=api.auth, listener=haikuSampleListener)
+            haikuSampleStream.sample(async=False)
+        except:
+            time.sleep(15*60)
+            continue
+
+
+def setup_threads():
+    # set up streams
+    thread.start_new_thread(user_listener, ())
+    thread.start_new_thread(sample_listener, ())
+    # start follow back
+    thread.start_new_thread(follow_back, ())
+
 #authorize tweepy
 auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
 auth.set_access_token(config.access_token, config.access_token_secret)
 api = tweepy.API(auth)
-
-#set up stream
-haikuListener = HaikuListener()
-haikuStream = tweepy.Stream(auth=api.auth, listener=haikuListener)
-haikuStream.userstream(async=True)
-thread.start_new_thread(follow_back, ())
+setup_threads()
 api.update_status("@ChrisW_B I'm ready!")
+
+while True:
+    #Keep the main thread alive
+    time.sleep(1)

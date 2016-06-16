@@ -4,15 +4,18 @@ Just a simple Tweepy based bot that looks for haikus that people it follows twee
 
 Make sure to install Tweepy before running!
 
-`pip install tweepy`
+```python
+pip install tweepy
+```
 
 After that, its as simple as setting up a config.py file like so
-```
+```python
 consumer_key = "XXXXXXXX"
 consumer_secret = "XXXXXXXX"
 access_token = "XXXXXXXX-XXXXXXXX"
 access_token_secret = "XXXXXXXX"
 ```
+
 and then running `python haikulistener.py`
 
 Syllable information comes from
