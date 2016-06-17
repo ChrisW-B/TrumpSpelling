@@ -154,7 +154,7 @@ def setup_threads():
     thread.start_new_thread(user_listener, ())
     thread.start_new_thread(sample_listener, ())
     # start follow back
-    thread.start_new_thread(follow_back, ())
+    # thread.start_new_thread(follow_back, ())
 
 #authorize tweepy
 auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
