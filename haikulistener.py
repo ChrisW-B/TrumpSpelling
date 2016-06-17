@@ -112,13 +112,22 @@ def limit_handled(cursor):
             time.sleep(15*60)
 
 
+def already_following(user):
+    friendship = api.show_friendship(target_id=user.id)
+    return friendship[0].following
+
+
 def follow_back():
     #teamfollowback!
     while True:
         print("starting follow")
         for follower in limit_handled(tweepy.Cursor(api.followers).items()):
-            # maybe keep out the spammers
-            if follower.friends_count/follower.followers_count < 3 or follower.friends_count < 100:
+            # don't repeatedly follow, and maybe keep out the spammers
+            if (not already_following(follower)
+                and (
+                    follower.friends_count/follower.followers_count < 3 or
+                    follower.friends_count < 200
+                    )):
                 follower.follow()
                 print("following " + follower.screen_name)
         time.sleep(15*60)
@@ -154,7 +163,7 @@ def setup_threads():
     thread.start_new_thread(user_listener, ())
     thread.start_new_thread(sample_listener, ())
     # start follow back
-    # thread.start_new_thread(follow_back, ())
+    thread.start_new_thread(follow_back, ())
 
 #authorize tweepy
 auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
@@ -164,5 +173,5 @@ setup_threads()
 api.update_status("@ChrisW_B I'm ready!")
 
 while True:
-    #Keep the main thread alive
+    #Keep the main thread alive so threads stay up
     time.sleep(1)
