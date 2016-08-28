@@ -5,6 +5,7 @@ import tweepy
 import config
 import re
 import sys
+import time
 from collections import Counter
 
 wordlist = "wordlist.txt"
@@ -20,7 +21,8 @@ def read_tweets():
     misspelledWords = []
     numRead = 0
     totalWords = 0
-    for page in tweepy.Cursor(api.user_timeline, id=trumpId, count=200).pages():
+    for page in limit_handled(
+            tweepy.Cursor(api.user_timeline, id=trumpId, count=200).pages()):
         print("Read {} tweets".format(numRead))
         for status in page:
             numRead += 1
@@ -28,8 +30,19 @@ def read_tweets():
             misspelled = get_misspelled(words)
             misspelledWords.extend(misspelled)
             totalWords += len(words)
-    print("Total words: {} \nTotal misspelled: {}".format(totalWords, len(misspelledWords)))
+    print("Total words: {} \nTotal misspelled: {}".format(
+        totalWords, len(misspelledWords)))
     return Counter(misspelledWords)
+
+
+def limit_handled(cursor):
+    # handles twitter limiting and tries to find people
+    # who follow
+    while True:
+        try:
+            yield cursor.next()
+        except tweepy.RateLimitError:
+            time.sleep(15*60)
 
 
 def get_words(tweet):
@@ -40,8 +53,8 @@ def get_words(tweet):
     stripTags = re.sub(r"#\S+", "", stripMentions)
     stripNums = re.sub(r'\w*\d\w*', '', stripTags).strip()
     stripProperNouns = re.sub(r"(?<![\s\.\!\?]) ([A-Z]([a-z]|[A-Z])+(\')*[a-z]*)", '', stripNums)
-    stripRTs = stripProperNouns.replace("RT", "")
-
+    stripAbbrev = re.sub(r"(([A-Z])\.)", '', stripProperNouns)
+    stripRTs = stripAbbrev.replace("RT", "")
     tweetArray = re.findall(r"[\w']+", stripRTs)
     return tweetArray
 

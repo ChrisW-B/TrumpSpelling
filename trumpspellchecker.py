@@ -7,11 +7,13 @@ import re
 import sys
 import time
 import thread
+import pickle
 
 wordlist = "wordlist.txt"
+savedData = "saved.data"
 # my twitter id: 34784570
 # trumps id: 25073877
-trumpId = '25073877'
+trumpId = '34784570'
 reload(sys)
 #twitter doesn't get along with ascii
 sys.setdefaultencoding('utf8')
@@ -25,14 +27,28 @@ class TrumpListener(tweepy.StreamListener):
             numMisspelled = int(count_misspelled(words))
             link = create_link(status)
             accuracy = (1 - float(numMisspelled) / float(len(words))) * 100.0
-            newTweet = "This @{:s} tweet stats: {:d}/{:d} misspelled words found, {:.2f}% accuracy \n{:s}".format(
+            overallAcc = get_overall_acc(len(words), numMisspelled)
+            newTweet = "This @{:s} tweet stats: {:d}/{:d} misspelled words found, {:.2f}% accuracy. Overall correct: {:.2f}% \n{:s}".format(
                 status.author.screen_name, numMisspelled,
-                int(len(words)), accuracy, link)
+                int(len(words)), accuracy, overallAcc, link)
             print(newTweet)
             api.update_status(newTweet, status.id_str)
 
     def on_error(self, status_code):
         print(status_code)
+
+
+def get_overall_acc(numWords, numMisspelled):
+    fd = open(savedData, 'r+')
+    overallData = pickle.load(fd)
+    overallData['numWords'] += numWords
+    overallData['numMisspelled'] += numMisspelled
+    overallAcc = (1 - float(overallData['numMisspelled'])
+                  / float(len(overallData['numWords']))) * 100.0
+    fd.seek(0)
+    pickle.dump(overallData, fd)
+    fd.close()
+    return overallAcc
 
 
 def get_words(tweet):
@@ -43,7 +59,8 @@ def get_words(tweet):
     stripTags = re.sub(r"#\S+", "", stripMentions)
     stripNums = re.sub(r'\w*\d\w*', '', stripTags).strip()
     stripProperNouns = re.sub(r"(?<![\s\.\!\?]) ([A-Z]([a-z]|[A-Z])+(\')*[a-z]*)", '', stripNums)
-    stripRTs = stripProperNouns.replace("RT", "")
+    stripAbbrev = re.sub(r"(([A-Z])\.)", '', stripProperNouns)
+    stripRTs = stripAbbrev.replace("RT", "")
     tweetArray = re.findall(r"[\w']+", stripRTs)
     return tweetArray
 
