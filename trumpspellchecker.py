@@ -13,7 +13,7 @@ wordlist = "wordlist.txt"
 savedData = "saved.data"
 # my twitter id: 34784570
 # trumps id: 25073877
-trumpId = '34784570'
+trumpId = '25073877'
 reload(sys)
 #twitter doesn't get along with ascii
 sys.setdefaultencoding('utf8')
