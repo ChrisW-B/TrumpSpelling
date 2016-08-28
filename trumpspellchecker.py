@@ -9,6 +9,7 @@ import thread
 from imp import reload
 
 wordlist = "wordlist.txt"
+trumpId = '25073877'
 reload(sys)
 #twitter doesn't get along with ascii
 sys.setdefaultencoding('utf8')
@@ -20,8 +21,11 @@ class TrumpListener(tweepy.StreamListener):
         words = get_words(status.text)
         numMisspelled = count_misspelled(words)
         link = create_link(status)
-        api.update_status("{} words found, {}% accuracy \n {}".format(
-            numMisspelled, numMisspelled/float(len(words)) * 100.0, link))
+        newTweet = "This @{:s} tweet stats: {:d} misspelled words found, {:.2f}% accuracy \n {:s}".format(
+            status.author.screen_name, int(numMisspelled),
+            (1 - float(numMisspelled)/float(len(words))) * 100.0, link)
+        print(newTweet)
+        api.update_status(newTweet, status.id_str)
 
     def on_error(self, status_code):
         print(status_code)
@@ -61,7 +65,8 @@ def create_link(status):
     # https://twitter.com/realDonaldTrump/status/769539271678013440
     id_str = status.id_str
     author = status.author.screen_name
-    return "https://twitter.com/" + author + "/status/" + id_str
+    link = "https://twitter.com/{}/status/{}/".format(author, str(id_str))
+    return link
 
 
 def limit_handled(cursor):
@@ -102,9 +107,9 @@ def user_listener():
             print("starting user")
             trumpListener = TrumpListener()
             trumpStream = tweepy.Stream(auth=api.auth, listener=trumpListener)
-            trumpStream.userstream(async=False)
-            trumpStream.filter(follow=['25073877'])
-        except:
+            trumpStream.filter(follow=[trumpId])
+        except Exception as e:
+            print(e)
             continue
 
 
@@ -121,7 +126,8 @@ api = tweepy.API(auth)
 setup_threads()
 api.update_status("@ChrisW_B I'm ready!")
 
-
 while True:
     #Keep the main thread alive so threads stay up
     time.sleep(1)
+
+
