@@ -1,6 +1,6 @@
 #Twitter Haiku Bot
 
-Just a simple Tweepy based bot that looks for haikus that people it follows tweet
+A modification of my old haiku bot to check Trump's spelling
 
 Make sure to install Tweepy before running!
 
@@ -16,10 +16,7 @@ access_token = "XXXXXXXX-XXXXXXXX"
 access_token_secret = "XXXXXXXX"
 ```
 
-and then running `python haikulistener.py`
+and then running `python trumpspellchecker.py`
 
-Syllable information comes from
-http://www.gutenberg.org/ebooks/3204
-
-Syllable guessing comes from 
-http://stackoverflow.com/questions/14541303/count-the-number-of-syllables-in-a-word
+Word list comes from
+http://www-01.sil.org/linguistics/wordlists/english/wordlist/wordsEn.txt
