@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
+from imp import reload
 import tweepy
 import config
 import re
 import sys
 import time
 import thread
-from imp import reload
 
 wordlist = "wordlist.txt"
+# my twitter id: 34784570
+# trumps id: 25073877
 trumpId = '25073877'
 reload(sys)
 #twitter doesn't get along with ascii
@@ -17,15 +19,17 @@ sys.setdefaultencoding('utf8')
 
 class TrumpListener(tweepy.StreamListener):
     def on_status(self, status):
-        print("Got Trump Tweet: " + status.text)
-        words = get_words(status.text)
-        numMisspelled = count_misspelled(words)
-        link = create_link(status)
-        newTweet = "This @{:s} tweet stats: {:d} misspelled words found, {:.2f}% accuracy \n {:s}".format(
-            status.author.screen_name, int(numMisspelled),
-            (1 - float(numMisspelled)/float(len(words))) * 100.0, link)
-        print(newTweet)
-        api.update_status(newTweet, status.id_str)
+        if status.user.id_str == trumpId:
+            print("Got Trump Tweet: " + status.text)
+            words = get_words(status.text)
+            numMisspelled = int(count_misspelled(words))
+            link = create_link(status)
+            accuracy = (1 - float(numMisspelled) / float(len(words))) * 100.0
+            newTweet = "This @{:s} tweet stats: {:d}/{:d} misspelled words found, {:.2f}% accuracy \n{:s}".format(
+                status.author.screen_name, numMisspelled,
+                int(len(words)), accuracy, link)
+            print(newTweet)
+            api.update_status(newTweet, status.id_str)
 
     def on_error(self, status_code):
         print(status_code)
@@ -107,7 +111,7 @@ def user_listener():
             print("starting user")
             trumpListener = TrumpListener()
             trumpStream = tweepy.Stream(auth=api.auth, listener=trumpListener)
-            trumpStream.filter(follow=[trumpId])
+            trumpStream.userstream()
         except Exception as e:
             print(e)
             continue
@@ -117,7 +121,7 @@ def setup_threads():
     # set up streams
     thread.start_new_thread(user_listener, ())
     # start follow back
-    thread.start_new_thread(follow_back, ())
+    # thread.start_new_thread(follow_back, ())
 
 #authorize tweepy
 auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
