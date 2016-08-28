@@ -1,4 +1,4 @@
-#Twitter Haiku Bot
+#Trump Spelling Bot
 
 A modification of my old haiku bot to check Trump's spelling
 
